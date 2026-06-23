@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简番茄钟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 60px 80px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-align: center;
+        }
+
+        .time {
+            font-size: 96px;
+            font-weight: 200;
+            color: #5a3e36;
+            margin-bottom: 48px;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 2px;
+            transition: color 0.3s ease;
+        }
+
+        .time.running {
+            color: #e74c3c;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 14px 38px;
+            font-size: 15px;
+            font-weight: 500;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.6);
+            color: #5a3e36;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.85);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(90, 62, 54, 0.15);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .primary {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .primary:hover {
+            background: #ff5252;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="time" id="time">25:00</div>
+        <div class="buttons">
+            <button class="primary" id="startBtn">开始</button>
+            <button id="resetBtn">重置</button>
+        </div>
+    </div>
+
+    <script>
+        const totalSeconds = 25 * 60;
+        let remaining = totalSeconds;
+        let timer = null;
+        let isRunning = false;
+
+        const timeEl = document.getElementById('time');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        function format(sec) {
+            const m = Math.floor(sec / 60).toString().padStart(2, '0');
+            const s = (sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function updateDisplay() {
+            timeEl.textContent = format(remaining);
+            timeEl.classList.toggle('running', isRunning);
+        }
+
+        function playBeep() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.8);
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                clearInterval(timer);
+                timer = null;
+                isRunning = false;
+                startBtn.textContent = '继续';
+            } else {
+                if (remaining <= 0) return;
+                isRunning = true;
+                startBtn.textContent = '暂停';
+                timer = setInterval(() => {
+                    remaining--;
+                    updateDisplay();
+                    if (remaining <= 0) {
+                        clearInterval(timer);
+                        timer = null;
+                        isRunning = false;
+                        startBtn.textContent = '开始';
+                        playBeep();
+                        setTimeout(playBeep, 1000);
+                        setTimeout(playBeep, 2000);
+                    }
+                }, 1000);
+            }
+            updateDisplay();
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            timer = null;
+            isRunning = false;
+            remaining = totalSeconds;
+            startBtn.textContent = '开始';
+            updateDisplay();
+        }
+
+        startBtn.addEventListener('click', toggleTimer);
+        resetBtn.addEventListener('click', resetTimer);
+        updateDisplay();
+    </script>
+</body>
+</html>
